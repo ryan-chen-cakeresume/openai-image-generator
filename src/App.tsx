@@ -1,33 +1,90 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [inputApiKey, setInputApiKey] = useState('')
+  const [inputPrompt, setInputPrompt] = useState('')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [rawResponseData, setRawResponseData] = useState<any>(null)
+  const [processing, setProcessing] = useState(false)
+
+  const onSend = () => {
+    if (!inputApiKey) {
+      alert('Invalid input API key')
+      return
+    }
+
+    setProcessing(true)
+    fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${inputApiKey}`
+      },
+      body: JSON.stringify({
+        "model": "dall-e-3",
+        "prompt": inputPrompt,
+        "n": 1,
+        "size": "1024x1024"
+      })
+    })
+    .then(response => response.json())
+    .then((data) => {
+      setRawResponseData(data)
+      console.log(data)
+    })
+    .catch(error => console.error('Error:', error))
+    .finally(() => setProcessing(false))
+  }
 
   return (
     <>
+      <h1>Image Generation</h1>
       <div>
-        <a href="https://vitejs.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+        <h2>Input</h2>
+        <div>
+          API Key:
+          <input
+            value={inputApiKey}
+            onChange={(event) => { setInputApiKey(event.target.value) }}
+          />
+        </div>
+        <div>
+          <textarea
+            value={inputPrompt}
+            onChange={(event) => { setInputPrompt(event.target.value) }}
+            rows={10}
+            cols={80}
+          />
+        </div>
+        <div>
+          <button
+            onClick={() => onSend()}
+            disabled={processing}
+          >
+            Send
+          </button>
+          {processing && <div>Processing...</div>}
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
+
+      <div>
+        <h2>Output</h2>
+        <div>
+          <h3>Image</h3>
+          <div>
+            {rawResponseData?.data?.[0]?.url && <img src={rawResponseData.data[0].url} />}
+          </div>
+        </div>
+        <div>
+          <h3>Raw</h3>
+          {rawResponseData && (
+            <pre>
+              {JSON.stringify(rawResponseData, null, 2)}
+            </pre>
+          )}
+        </div>
       </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
   )
 }
